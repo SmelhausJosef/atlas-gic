@@ -1,0 +1,39 @@
+{
+  "period": "2024-09-01 to 2026-03-07",
+  "trading_days": 378,
+  "starting_value": 1000000,
+  "ending_value": 940937.77,
+  "total_return_pct": -5.91,
+  "autoresearch": {
+    "total_modifications": 54,
+    "kept": 16,
+    "reverted": 37,
+    "keep_rate_pct": 29.6
+  },
+  "final_agent_weights": {
+    "central_bank": 0.3,
+    "geopolitical": 2.5,
+    "china": 1.36,
+    "dollar": 0.44,
+    "yield_curve": 1.13,
+    "commodities": 2.5,
+    "volatility": 2.5,
+    "emerging_markets": 0.35,
+    "news_sentiment": 1.55,
+    "institutional_flow": 0.3,
+    "semiconductor": 0.3,
+    "energy": 2.5,
+    "biotech": 0.36,
+    "consumer": 1.92,
+    "industrials": 2.5,
+    "financials": 0.47,
+    "druckenmiller": 0.55,
+    "aschenbrenner": 2.5,
+    "baker": 0.46,
+    "ackman": 2.5,
+    "cro": 1.0,
+    "alpha_discovery": 1.82,
+    "autonomous_execution": 1.0,
+    "cio": 0.3
+  }
+}

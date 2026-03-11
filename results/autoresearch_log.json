@@ -1,0 +1,153 @@
+[
+  {
+    "day": 325,
+    "date": "2025-12-17",
+    "agent": "financials",
+    "modification": "Add momentum filter requirement before making recommendations",
+    "kept": false
+  },
+  {
+    "day": 331,
+    "date": "2025-12-26",
+    "agent": "financials",
+    "modification": "Add market timing and technical confirmation requirements",
+    "pre_sharpe": -4.14,
+    "post_sharpe": -1.11,
+    "kept": true
+  },
+  {
+    "day": 335,
+    "date": "2026-01-02",
+    "agent": "financials",
+    "modification": "Add defensive override rule to prevent bullish signals during financial sector underperformance",
+    "pre_sharpe": -1.11,
+    "post_sharpe": 0.45,
+    "kept": true
+  },
+  {
+    "day": 337,
+    "date": "2026-01-06",
+    "agent": "emerging_markets",
+    "modification": "Replace all complex timing filters with simple momentum pause requirement",
+    "pre_sharpe": -0.45,
+    "post_sharpe": -0.44,
+    "kept": true
+  },
+  {
+    "day": 340,
+    "date": "2026-01-09",
+    "agent": "emerging_markets",
+    "modification": "Remove all contradictory risk management and timing filters",
+    "pre_sharpe": -0.44,
+    "post_sharpe": -0.38,
+    "kept": true
+  },
+  {
+    "day": 342,
+    "date": "2026-01-13",
+    "agent": "emerging_markets",
+    "modification": "Replace consolidation filter with oversold bounce completion requirement",
+    "pre_sharpe": -0.40,
+    "post_sharpe": -0.37,
+    "kept": true
+  },
+  {
+    "day": 345,
+    "date": "2026-01-16",
+    "agent": "emerging_markets",
+    "modification": "Replace all complex oversold protection rules with one simple DXY-based filter",
+    "pre_sharpe": -0.37,
+    "post_sharpe": -0.14,
+    "kept": true
+  },
+  {
+    "day": 349,
+    "date": "2026-01-23",
+    "agent": "semiconductor",
+    "modification": "Strengthen momentum filter to prevent high-conviction longs during sector weakness",
+    "pre_sharpe": -0.26,
+    "post_sharpe": -0.06,
+    "kept": true
+  },
+  {
+    "day": 350,
+    "date": "2026-01-26",
+    "agent": "emerging_markets",
+    "modification": "Add absolute override that prevents any EM shorts when DXY >119",
+    "pre_sharpe": -0.18,
+    "post_sharpe": -0.16,
+    "kept": true
+  },
+  {
+    "day": 351,
+    "date": "2026-01-27",
+    "agent": "emerging_markets",
+    "modification": "Strengthen the DXY override to be more explicit and remove all discretion",
+    "pre_sharpe": -0.16,
+    "post_sharpe": -0.14,
+    "kept": true
+  },
+  {
+    "day": 355,
+    "date": "2026-02-02",
+    "agent": "emerging_markets",
+    "modification": "Add strict asset filter to prevent non-EM recommendations",
+    "pre_sharpe": -0.15,
+    "post_sharpe": -0.12,
+    "kept": true
+  },
+  {
+    "day": 356,
+    "date": "2026-02-03",
+    "agent": "emerging_markets",
+    "modification": "Strengthen asset universe enforcement with immediate rejection of non-EM tickers",
+    "pre_sharpe": -0.12,
+    "post_sharpe": -0.11,
+    "kept": true
+  },
+  {
+    "day": 359,
+    "date": "2026-02-06",
+    "agent": "semiconductor",
+    "modification": "Add mandatory SMH momentum check requirement",
+    "pre_sharpe": -0.14,
+    "post_sharpe": -0.09,
+    "kept": true
+  },
+  {
+    "day": 364,
+    "date": "2026-02-13",
+    "agent": "emerging_markets",
+    "modification": "Raise RSI threshold for EM shorts to 70+ to avoid violent oversold bounces",
+    "pre_sharpe": -0.11,
+    "post_sharpe": -0.08,
+    "kept": true
+  },
+  {
+    "day": 365,
+    "date": "2026-02-17",
+    "agent": "emerging_markets",
+    "modification": "Add mandatory pre-recommendation validation step",
+    "pre_sharpe": -0.08,
+    "post_sharpe": -0.08,
+    "kept": true
+  },
+  {
+    "day": 368,
+    "date": "2026-02-20",
+    "agent": "emerging_markets",
+    "modification": "Add mandatory ticker validation that forces NEUTRAL signal if any non-EM asset would be recommended",
+    "pre_sharpe": -0.08,
+    "post_sharpe": -0.06,
+    "kept": true
+  },
+  {
+    "day": 373,
+    "date": "2026-02-27",
+    "agent": "financials",
+    "modification": "Add intraday momentum filter to prevent recommendations during active financial sector selloffs",
+    "pre_sharpe": -0.09,
+    "post_sharpe": -0.09,
+    "kept": true
+  }
+]
