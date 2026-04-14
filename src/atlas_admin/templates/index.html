@@ -1,0 +1,220 @@
+{% extends "layout.html" %}
+{% block title %}ATLAS Admin Overview{% endblock %}
+{% block content %}
+<section class="hero card">
+  <div>
+    <p class="eyebrow">System overview</p>
+    <h2>Research control room</h2>
+    <p class="muted">Use this page to verify dataset health, launch bounded runs, and keep track of live research families without opening raw artifact files.</p>
+  </div>
+  <div class="stat-strip">
+    <div class="stat-chip">
+      <span class="stat-label">Runs</span>
+      <strong>{{ run_counts.total }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">Running</span>
+      <strong>{{ run_counts.running }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">Research</span>
+      <strong>{{ run_counts.research }}</strong>
+    </div>
+    <div class="stat-chip">
+      <span class="stat-label">Failed</span>
+      <strong>{{ run_counts.failed }}</strong>
+    </div>
+  </div>
+</section>
+
+<section class="grid four">
+  <article class="card compact">
+    <p class="eyebrow">Dataset</p>
+    <h3>{{ dataset.instrument }}</h3>
+    <p class="muted">{{ dataset.venue }} · {{ dataset.timeframe }}</p>
+    <strong class="big-number">{{ dataset.row_count }}</strong>
+    <p class="muted">bars loaded</p>
+  </article>
+  <article class="card compact">
+    <p class="eyebrow">Coverage</p>
+    <h3>{{ dataset.date_start[:10] }}</h3>
+    <p class="muted">to {{ dataset.date_end[:10] }}</p>
+    <strong class="big-number">{{ dataset.issues|length }}</strong>
+    <p class="muted">validator warnings</p>
+  </article>
+  <article class="card compact">
+    <p class="eyebrow">Latest backtest</p>
+    {% if latest_baseline %}
+    <h3><a href="/runs/{{ latest_baseline.run_id }}">{{ latest_baseline.strategy or latest_baseline.title }}</a></h3>
+    {% with status=latest_baseline.status %}{% include "partials/status_badge.html" %}{% endwith %}
+    <p class="muted">Score {% if latest_baseline.overall_score is not none %}{{ "%.4f"|format(latest_baseline.overall_score) }}{% else %}-{% endif %}</p>
+    {% else %}
+    <h3>-</h3>
+    <p class="muted">No backtests yet.</p>
+    {% endif %}
+  </article>
+  <article class="card compact">
+    <p class="eyebrow">Latest research</p>
+    {% if latest_research %}
+    <h3><a href="/runs/{{ latest_research.run_id }}">{{ latest_research.baseline_name or latest_research.title }}</a></h3>
+    {% with status=latest_research.status %}{% include "partials/status_badge.html" %}{% endwith %}
+    <p class="muted">{{ latest_research.stop_reason or "In progress or awaiting verdict." }}</p>
+    {% else %}
+    <h3>-</h3>
+    <p class="muted">No research runs yet.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="grid two">
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Dataset detail</p>
+        <h2>Current market file</h2>
+      </div>
+      {% if dataset.issues %}
+      <span class="status-pill status-warning">{{ dataset.issues|length }} warnings</span>
+      {% else %}
+      <span class="status-pill status-completed">healthy</span>
+      {% endif %}
+    </div>
+    <dl class="meta-grid">
+      <dt>Path</dt><dd>{{ dataset.path }}</dd>
+      <dt>Instrument</dt><dd>{{ dataset.instrument }}</dd>
+      <dt>Venue</dt><dd>{{ dataset.venue }}</dd>
+      <dt>Timeframe</dt><dd>{{ dataset.timeframe }}</dd>
+      <dt>Rows</dt><dd>{{ dataset.row_count }}</dd>
+      <dt>Range</dt><dd>{{ dataset.date_start }} to {{ dataset.date_end }}</dd>
+      <dt>SHA256</dt><dd class="mono">{{ dataset.sha256 }}</dd>
+    </dl>
+    {% if dataset.issues %}
+    <div class="warning">
+      <strong>Warnings</strong>
+      <ul>
+        {% for issue in dataset.issues %}
+        <li>{{ issue }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Actions</p>
+        <h2>Launch a run</h2>
+      </div>
+    </div>
+    <form class="stack" method="post" action="/actions/backtest">
+      <div class="form-section">
+        <h3>Single backtest</h3>
+        <p class="muted">Run one strategy once against the current config and dataset.</p>
+      </div>
+      <label>Config path
+        <input type="text" name="config_path_value" value="{{ strategies.config_path }}">
+      </label>
+      <label>Strategy
+        <input type="text" name="strategy" value="{{ strategies.baseline }}">
+      </label>
+      <button type="submit">Run backtest</button>
+    </form>
+    <hr>
+    <form class="stack" method="post" action="/actions/research">
+      <div class="form-section">
+        <h3>LLM research</h3>
+        <p class="muted">Generate strategy families, tune each one for a bounded number of iterations, and write verdicts into strategy memory.</p>
+      </div>
+      <label>Config path
+        <input type="text" name="config_path_value" value="{{ strategies.config_path }}">
+      </label>
+      <label>Baseline
+        <input type="text" name="baseline" value="{{ strategies.baseline }}">
+      </label>
+      <label>Family budget
+        <input type="number" name="candidate_budget" min="1" placeholder="{{ strategies.family_budget }}">
+      </label>
+      <label>Tuning iterations per family
+        <input type="number" name="max_generations" min="1" placeholder="{{ strategies.tuning_iterations_per_family }}">
+      </label>
+      <p class="muted">Research launched from the dashboard always runs the LLM-driven strategy family workflow.</p>
+      <button type="submit">Run LLM research</button>
+    </form>
+  </article>
+</section>
+
+<section class="grid two">
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Now running</p>
+        <h2>Active sessions</h2>
+      </div>
+      <span class="status-pill status-running">live</span>
+    </div>
+    <div
+      hx-get="/partials/active-sessions"
+      hx-trigger="load, every 3s"
+      hx-swap="innerHTML"
+    >
+      {% include "partials/active_sessions.html" %}
+    </div>
+  </article>
+
+  <article class="card">
+    <p class="eyebrow">Quick links</p>
+    <h2>Latest results</h2>
+    <div class="stack">
+      {% if latest_baseline %}
+      <div class="result-card">
+        <strong>Latest backtest</strong>
+        <p><a href="/runs/{{ latest_baseline.run_id }}">{{ latest_baseline.title }}</a></p>
+        <p class="muted">Status: {{ latest_baseline.status }}{% if latest_baseline.overall_score is not none %}, score {{ "%.4f"|format(latest_baseline.overall_score) }}{% endif %}</p>
+      </div>
+      {% endif %}
+      {% if latest_research %}
+      <div class="result-card">
+        <strong>Latest research</strong>
+        <p><a href="/runs/{{ latest_research.run_id }}">{{ latest_research.title }}</a></p>
+        <p class="muted">Status: {{ latest_research.status }}{% if latest_research.stop_reason %}, {{ latest_research.stop_reason }}{% endif %}</p>
+      </div>
+      {% endif %}
+    </div>
+  </article>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <div>
+      <p class="eyebrow">Recent activity</p>
+      <h2>Recent runs</h2>
+    </div>
+    <a href="/runs">View all</a>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Run</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Started</th>
+        <th>Stop reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in runs %}
+      <tr>
+        <td><a href="/runs/{{ item.run_id }}">{{ item.title }}</a></td>
+        <td>{{ item.run_type }}</td>
+        <td>{% with status=item.status %}{% include "partials/status_badge.html" %}{% endwith %}</td>
+        <td>{{ item.started_at or "-" }}</td>
+        <td>{{ item.stop_reason or "-" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,35 @@
+<section class="card inset">
+  <div class="card-head">
+    <div>
+      <p class="eyebrow">Live state</p>
+      <h3>Heartbeat</h3>
+    </div>
+    {% with status=detail.status %}{% include "partials/status_badge.html" %}{% endwith %}
+  </div>
+  {% if detail.heartbeat %}
+  <div class="grid four compact-grid">
+    <div class="mini-stat">
+      <span class="stat-label">Stage</span>
+      <strong>{{ detail.heartbeat.get("stage", "-") }}</strong>
+    </div>
+    <div class="mini-stat">
+      <span class="stat-label">Family</span>
+      <strong>{{ detail.heartbeat.get("current_family", "-") }}</strong>
+    </div>
+    <div class="mini-stat">
+      <span class="stat-label">Iteration</span>
+      <strong>{{ detail.heartbeat.get("current_iteration", "-") }}</strong>
+    </div>
+    <div class="mini-stat">
+      <span class="stat-label">Best score</span>
+      <strong>{% if detail.heartbeat.get("best_overall_score") is not none %}{{ "%.4f"|format(detail.heartbeat.get("best_overall_score")) }}{% else %}-{% endif %}</strong>
+    </div>
+  </div>
+  <details class="details-block">
+    <summary>Raw heartbeat payload</summary>
+    <pre>{{ detail.heartbeat | tojson(indent=2) }}</pre>
+  </details>
+  {% else %}
+  <p class="muted">No heartbeat payload available.</p>
+  {% endif %}
+</section>

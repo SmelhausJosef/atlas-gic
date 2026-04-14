@@ -1,0 +1,43 @@
+{% extends "layout.html" %}
+{% block title %}ATLAS Runs{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="card-head">
+    <div>
+      <p class="eyebrow">History</p>
+      <h2>Runs</h2>
+    </div>
+    <div class="filters">
+      <a href="/runs" class="{% if not kind %}active{% endif %}">All</a>
+      <a href="/runs?kind=backtest" class="{% if kind == 'backtest' %}active{% endif %}">Backtests</a>
+      <a href="/runs?kind=research" class="{% if kind == 'research' %}active{% endif %}">Research</a>
+    </div>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Run</th>
+        <th>Type</th>
+        <th>Status</th>
+        <th>Started</th>
+        <th>Score</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in runs %}
+      <tr>
+        <td><a href="/runs/{{ item.run_id }}">{{ item.title }}</a></td>
+        <td>{{ item.run_type }}</td>
+        <td>{% with status=item.status %}{% include "partials/status_badge.html" %}{% endwith %}</td>
+        <td>{{ item.started_at or "-" }}</td>
+        <td>{% if item.overall_score is not none %}{{ "%.4f"|format(item.overall_score) }}{% else %}-{% endif %}</td>
+        <td>{{ item.stop_reason or "-" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

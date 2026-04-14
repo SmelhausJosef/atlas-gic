@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "atlas-gic"
+version = "0.1.0"
+description = "Deterministic BTC perpetual research framework for 5-second bars."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "General Intelligence Capital" }
+]
+dependencies = [
+  "fastapi>=0.115,<1",
+  "jinja2>=3.1,<4",
+  "numpy>=1.26,<3",
+  "pandas>=2.2,<3",
+  "pydantic>=2.7,<3",
+  "python-multipart>=0.0.9,<1",
+  "pyyaml>=6.0,<7",
+  "uvicorn>=0.30,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "httpx>=0.27,<1",
+  "mypy>=1.10,<2",
+  "pytest>=8.2,<9",
+  "ruff>=0.4,<1",
+]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+atlas_admin = ["templates/*.html", "templates/partials/*.html", "static/*.css"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.mypy]
+python_version = "3.12"
+packages = ["atlas", "atlas_admin"]
+strict = true
+ignore_missing_imports = true

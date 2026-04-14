@@ -1,0 +1,14 @@
+<section class="card inset">
+  <div class="card-head">
+    <div>
+      <p class="eyebrow">Process output</p>
+      <h3>Progress log</h3>
+    </div>
+    <span class="status-pill status-running">live</span>
+  </div>
+  {% if detail.log_preview %}
+  <pre class="log-output">{{ detail.log_preview }}</pre>
+  {% else %}
+  <p class="muted">No process output yet.</p>
+  {% endif %}
+</section>

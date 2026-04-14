@@ -1,219 +1,109 @@
-# ATLAS - Self-Improving AI Trading Agents
+# atlas-gic
 
-**Built by [General Intelligence Capital](https://generalintelligencecapital.com)**
+Deterministic BTC perpetual research framework for **5-second bars**.
 
-[Karpathy's autoresearch](https://github.com/karpathy/autoresearch) + [Soros's reflexivity](https://en.wikipedia.org/wiki/Reflexivity_(social_theory)) + [MiroFish swarm simulation](https://github.com/666ghj/MiroFish) applied to financial markets.
+This repository now contains a runnable MVP under [`src/atlas`](/Users/josefsmelhaus/Projects/atlas-gic/src/atlas) with:
 
-The agent prompts are the weights. Sharpe ratio is the loss function. No GPU needed.
+- local OHLCV + funding CSV ingestion,
+- deterministic next-bar-close backtests,
+- conservative fee/slippage/latency assumptions,
+- baseline mean reversion strategies,
+- reproducible run artifacts,
+- a bounded research loop that compares candidate strategies against a fixed evaluation harness.
 
-⭐ 944 stars · 202 forks
+Optional LLM mutation is implemented through the **Codex SDK** provider. In the MVP it generates bounded strategy parameter overrides, not arbitrary code edits.
 
----
+## What Is In Scope
 
-## What Is This?
+- One instrument at a time, default `BTCUSDT-PERP`
+- One timeframe, default `5s`
+- One conservative execution model: signal on bar `N`, fill on bar `N+1`
+- Offline research only
 
-ATLAS is a framework for autonomous AI trading agents that improve their own prompts through market feedback, train on different market regimes, create new agents when they detect knowledge gaps, and simulate reflexive futures to prepare for what's coming.
+## What Is Out of Scope
 
-25+ agents debate markets daily across 4 layers. Every recommendation is scored against real outcomes. The worst-performing agent gets its prompt rewritten. If performance improves, the git commit survives. If not, git revert.
+- Tick replay or order book simulation
+- Paper trading or live execution
+- The legacy `JANUS` and `MiroFish` prototypes
 
-Now running live with real capital.
+## Install
 
----
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+```
 
-## Architecture
+## Dataset Format
 
-### Layer 1 - Macro (10 agents)
+Place a CSV at `data/market/btc_perp_5s.csv` or point the config to another file.
 
-Central bank, geopolitical, China, dollar, yield curve, commodities, volatility, emerging markets, news sentiment, institutional flow.
+Required columns:
 
-These agents set the regime. Risk on or risk off? What's the macro backdrop?
+```text
+timestamp,open,high,low,close,volume,funding_rate
+```
 
-### Layer 2 - Sector Desks (7 agents)
+- `timestamp` must be parseable as UTC time.
+- `funding_rate` is interpreted at the bar level.
 
-Semiconductor, energy, biotech, consumer, industrials, financials, plus a Bloomberg-style relationship mapper that tracks supply chains, ownership, analyst coverage, and competitive dynamics.
+## Commands
 
-### Layer 3 - Superinvestors (4 agents)
+Validate the dataset:
 
-* **Druckenmiller** - macro/momentum: what's the big asymmetric trade?
-* **Aschenbrenner** - AI/compute: who benefits from the capex cycle?
-* **Baker** - deep tech/biotech: who has real IP moats?
-* **Ackman** - quality compounder: pricing power + FCF + catalyst?
+```bash
+python -m atlas data validate --config configs/base.yaml
+```
 
-### Layer 4 - Decision (4 agents)
+Fetch a Binance USDⓈ-M futures dataset and derive `5s` bars from aggregate trades:
 
-* **CRO** - adversarial risk officer: attacks every idea, finds correlated risks
-* **Alpha Discovery** - finds names nobody else mentioned
-* **Autonomous Execution** - converts signals to sized trades
-* **CIO** - synthesises all prior layers, weighted by Darwinian agent scores, makes the final call
+```bash
+python -m atlas data fetch-binance --symbol BTCUSDT --hours 12 --output data/market/btc_perp_5s.csv
+```
 
----
+For an initial bootstrap dataset, start smaller to avoid Binance REST rate limits:
 
-## The Autoresearch Loop
+```bash
+python -m atlas data fetch-binance --symbol BTCUSDT --hours 1 --output data/market/btc_perp_5s.csv
+```
 
-Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch). Same pattern, different domain.
+For multi-week history, prefer the official Binance daily archives:
 
-* System identifies worst agent by rolling Sharpe
-* Generates one targeted prompt modification
-* Runs for 5 trading days
-* Checks if agent's Sharpe improved
-* Keep (git commit) or revert (git reset)
+```bash
+python -m atlas data fetch-binance-archive --symbol BTCUSDT --days 28 --output data/market/btc_perp_5s.csv
+```
 
-The agent prompts are the weights being optimised. Each trading day is one training iteration. A $20/month VM replaces the H100.
+Run a backtest:
 
-**Darwinian Weights:** Each agent has a weight between 0.3 (minimum) and 2.5 (maximum). Top quartile agents get weight × 1.05 daily. Bottom quartile get × 0.95. The CIO proportionally weights input by these scores. Good agents get louder. Bad agents get quieter.
+```bash
+python -m atlas backtest run --config configs/base.yaml --strategy btc_mean_reversion_v1
+```
 
----
+Run the research comparison loop:
 
-## 18-Month Backtest Results
+```bash
+python -m atlas research run --config configs/base.yaml --baseline btc_mean_reversion_v1
+```
 
-**Period:** September 2024 - March 2026 (378 trading days)
+Artifacts are written to `artifacts/runs/<run_id>/`.
 
-* Prompt modifications attempted: 54
-* Survived (kept): 16 (30%)
-* Reverted: 37 (70%)
-* Deployment phase return: **+22% in 173 days**
-* Best individual pick: **AVGO at $152, held for +128%**
+## Codex SDK Integration
 
-The system independently discovered its own portfolio manager (CIO) was its weakest component — downweighting it to minimum before we diagnosed the same issue manually.
+The research loop can optionally ask a local Codex agent for bounded strategy mutations.
 
-### Equity Curve
+- Set `research.use_llm: true`
+- Keep `research.provider: codex_sdk`
+- Set `research.model` to a supported Codex model, default `gpt-5.4`
+- Optionally export `ATLAS_CODEX_BIN` if your local Codex binary is not on `PATH`
 
-![Equity Curve](results/equity_curve.png)
+The Python Codex SDK is experimental and relies on the local Codex app-server. If it is unavailable, the runner will raise an explicit setup error instead of silently falling back.
 
----
+## Notes On Legacy Content
 
-## Agent Spawning
+The files under [`src/janus.py`](/Users/josefsmelhaus/Projects/atlas-gic/src/janus.py) and [`src/mirofish`](/Users/josefsmelhaus/Projects/atlas-gic/src/mirofish) are preserved as legacy prototypes. They are intentionally not part of the MVP runtime path.
 
-The system detects recurring knowledge gaps in its own debates. When the same blind spot appears 3+ times in 5 days, it autonomously creates a new specialist agent at neutral weight.
+## Binance Note
 
-During a 6-month spawning test (Jul-Dec 2024):
-- 9 agents spawned autonomously — credit markets, earnings calendar, options flow, liquidity conditions, positioning data, earnings guidance, retail sentiment, technical levels
-- 3 went extinct (stuck at minimum weight for 20+ days)
-- 6 survived Darwinian selection and reached maximum weight
-- Zero human involvement in deciding what to create or when
+Binance USDⓈ-M Futures REST klines support `1m` and larger intervals in the official API docs. For this MVP, `5s` bars are therefore derived from the official `aggTrades` endpoint instead of native kline data, and funding is distributed across bars inside each funding interval.
 
-The system grew its own team from 25 to 31 agents based on what it learned it didn't know.
-
----
-
-## All Seasons (PRISM) — Regime-Specific Training
-
-We don't train one set of agents and hope they work everywhere. We train separate cohorts on distinct market regimes.
-
-Same starting agents. Same vanilla prompts. Different evolutionary environments. Completely different survival instincts.
-
-| Cohort | Period | Return | Modifications Kept | Key Learning |
-|--------|--------|--------|--------------------|--------------|
-| Bull/Low Vol | 2016-2018 | +7.7% | 180/509 (35%) | Exit vol longs when events resolve peacefully |
-| Crisis (COVID) | 2020 Q1-Q2 | -13.1% | 0/3 (0%) | Crashes too fast for autoresearch — agents need to arrive pre-trained |
-| Rate Tightening | 2022-2023 | -30.2% | 38/89 (43%) | Don't flip-flop during Fed weeks — 15-day minimum between reversals |
-| Recovery | 2020 Q2-Q4 | -29.0% | 0/1 (0%) | Same problem as crisis — too fast for the feedback loop |
-| Euphoria | 2021 | +14.3% | 119/243 (49%) | Momentum confirmation before shorts, cap conviction during political crises |
-
-**Convergent Evolution:** All five cohorts independently discovered the same meta-rules — cap conviction, use VIX as regime filter, enforce hard position limits, never override risk management. Nobody programmed caution. Every cohort learned it from losing money when overconfident.
-
-**Divergent Evolution:** The same volatility agent started at 844 bytes in every cohort:
-- Bull markets: grew to 121,260 bytes (143x). Learned "exit vol longs immediately when events resolve peacefully."
-- Rate tightening: grew to 10,354 bytes. Learned "NEVER buy VXX when VIX is 15-25."
-- Euphoria: grew to 1,998 bytes. Learned "require VIX above 30 before going long vol."
-
-Same agent. Same starting prompt. Three completely different survival strategies shaped by three different markets.
-
----
-
-## JANUS Meta-Layer
-
-Multiple trained cohorts produce different recommendations. JANUS sits above all cohorts and algorithmically weights them by recent accuracy.
-
-The weight differential between cohorts is an emergent regime detector:
-- When short-window agents outperform → **NOVEL REGIME**
-- When long-window agents outperform → **HISTORICAL REGIME**
-- When they're roughly equal → **MIXED**
-
-We didn't build a regime detector. It emerged from tracking which cohort gets things right.
-
----
-
-## Soros Reflexivity Engine
-
-Markets don't just reflect reality — they change it. We built reflexive feedback loops into the simulation framework.
-
-Five feedback loops modelled:
-1. **Price → Fundamentals**: Stock drops >15% trigger credit downgrades, talent flight, capex cuts. Rises >20% trigger cheap capital, talent attraction, customer confidence.
-2. **P&L → Behaviour**: Fund drawdown >10% → forced selling cascade. Gains >15% → increased position sizes and concentrated bets.
-3. **Narrative → Flows**: 3+ analysts converge on thesis → retail flow follows. Contrarian narratives emerge after extended consensus.
-4. **Market → Policy**: Equity drawdown >15% → central bank signals easing. Oil >$130 → strategic reserve releases.
-5. **Reflexive Reversal Detection**: Feedback loop running 5+ rounds in one direction → flagged as reflexive extreme. Maximum consensus = maximum fragility.
-
-First detection: Gold bullish consensus appeared in 4 of 5 simulation rounds — flagged as a crowded trade with 32% reversal probability. That's Soros in code.
-
----
-
-## MiroFish Swarm Simulation Integration
-
-Integrated with [MiroFish](https://github.com/666ghj/MiroFish), a swarm intelligence engine that generates parallel digital worlds populated by thousands of AI agents.
-
-Our trading agents don't just learn from the past — they train on simulated futures:
-
-- Overnight, the system generates branching scenarios (geopolitical escalation, Fed policy, earnings shocks, black swans)
-- Thousands of simulated agents (fund managers, central bankers, retail traders, corporate executives) interact with reflexive feedback
-- ATLAS trading agents are trained inside these simulated futures using the same Darwinian loop
-- Agents that navigate simulated futures well get upweighted
-- Predictions scored against actual outcomes to improve simulation accuracy
-
-**First result:** Druckenmiller-style agent scores 1.0 in simulated crashes but 0.22 in melt-ups. Quality compounder agent is the opposite. The system knows which instincts to trust before the regime arrives — not after.
-
----
-
-## Key Insight
-
-The orchestration layer matters as much as the intelligence layer.
-
-Individual agents improved measurably through autoresearch. But portfolio returns depend on how agent signals are converted to sized positions. The synthesis/decision layer is the bottleneck. Improving individual agent intelligence without improving orchestration yields diminishing returns.
-
----
-
-## What's Included
-
-* Framework architecture and pipeline structure
-* Autoresearch loop design
-* Backtest results and equity curve
-* All Seasons (PRISM) methodology and results
-* Agent spawning mechanism
-* JANUS meta-layer design
-* Soros reflexivity engine
-* MiroFish integration bridge
-* Example placeholder prompts (generic, not trained)
-
-## What's NOT Included
-
-* Trained agent prompts (proprietary — evolutionary products of market feedback)
-* PRISM evolved prompts per regime
-* CIO active management rules
-* Agent scorecard data
-* Live portfolio positions
-* Darwinian weight values
-* MiroFish simulation outputs
-
-The trained prompts are the core IP. A competitor starting today is hundreds of iterations behind. That gap widens every day.
-
----
-
-## Tech Stack
-
-* **Agents:** Claude Sonnet (Anthropic API)
-* **Simulation:** MiroFish swarm engine
-* **Data:** FMP, Finnhub, Polygon, FRED
-* **Infrastructure:** Azure VM ($20/month)
-* **Version Control:** Git feature branches for autoresearch tracking
-* **Cost:** ~$50-80 for full 18-month backtest, ~$30 for all five PRISM cohorts
-
----
-
-## Contact
-
-**Chris Worsey** — CEO & Technical Founder, General Intelligence Capital
-
-[chris@generalintelligencecapital.com](mailto:chris@generalintelligencecapital.com)
-
-[generalintelligencecapital.com](https://generalintelligencecapital.com)
+For longer lookbacks, prefer Binance archive dumps or another bulk historical source over the REST path, because `aggTrades` paging can hit rate limits on high-volume symbols.

@@ -1,0 +1,15 @@
+{% if active_runs %}
+<ul class="active-list cards-list">
+  {% for item in active_runs %}
+  <li class="active-session-card">
+    <div>
+      <a href="/runs/{{ item.run_id }}">{{ item.title }}</a>
+      <p class="muted">{{ item.started_at or "-" }}</p>
+    </div>
+    {% with status=item.status %}{% include "partials/status_badge.html" %}{% endwith %}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No active sessions.</p>
+{% endif %}

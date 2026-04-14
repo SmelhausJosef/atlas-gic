@@ -1,0 +1,273 @@
+{% extends "layout.html" %}
+{% block title %}{{ detail.title }}{% endblock %}
+{% block content %}
+<section class="hero card">
+  <div class="card-head">
+    <div>
+      <p class="eyebrow">{{ detail.run_type }}</p>
+      <h2>{{ detail.title }}</h2>
+      <p class="muted">Run ID: <span class="mono">{{ detail.run_id }}</span></p>
+    </div>
+    <div class="hero-actions">
+      {% with status=detail.status %}{% include "partials/status_badge.html" %}{% endwith %}
+      {% if detail.status == "running" %}
+      <form method="post" action="/actions/stop/{{ detail.dashboard_job_id or detail.run_id }}">
+        <button class="danger" type="submit">Stop</button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  <div class="grid four compact-grid">
+    <div class="mini-stat">
+      <span class="stat-label">Score</span>
+      <strong>{% if detail.overall_score is not none %}{{ "%.4f"|format(detail.overall_score) }}{% else %}-{% endif %}</strong>
+    </div>
+    <div class="mini-stat">
+      <span class="stat-label">Started</span>
+      <strong>{{ detail.started_at or "-" }}</strong>
+    </div>
+    <div class="mini-stat">
+      <span class="stat-label">Updated</span>
+      <strong>{{ detail.updated_at or "-" }}</strong>
+    </div>
+    <div class="mini-stat">
+      <span class="stat-label">Stop reason</span>
+      <strong>{{ detail.stop_reason or "-" }}</strong>
+    </div>
+  </div>
+  <dl class="meta-grid run-meta">
+    <dt>Strategy</dt><dd>{{ detail.strategy or "-" }}</dd>
+    <dt>Baseline</dt><dd>{{ detail.baseline_name or "-" }}</dd>
+    <dt>Log path</dt><dd class="mono">{{ detail.stdout_log_path or "-" }}</dd>
+  </dl>
+  <div
+    hx-get="/partials/heartbeat/{{ detail.run_id }}"
+    hx-trigger="load{% if detail.status == 'running' %}, every 3s{% endif %}"
+    hx-swap="innerHTML"
+  >
+    {% include "partials/heartbeat.html" %}
+  </div>
+</section>
+
+{% if detail.error_message %}
+<section class="card">
+  <p class="eyebrow">Failure detail</p>
+  <h3>Error</h3>
+  <pre>{{ detail.error_message }}</pre>
+</section>
+{% endif %}
+
+<section
+  hx-get="/partials/log-preview/{{ detail.run_id }}"
+  hx-trigger="load{% if detail.status == 'running' %}, every 2s{% endif %}"
+  hx-swap="innerHTML"
+>
+  {% include "partials/log_preview.html" %}
+</section>
+
+<section class="grid two">
+  <article class="card">
+    <h3>Dataset manifest</h3>
+    <pre>{{ detail.dataset_manifest | tojson(indent=2) }}</pre>
+  </article>
+  <article class="card">
+    <h3>Artifacts</h3>
+    <ul class="artifacts">
+      {% for filename in detail.artifact_files %}
+      <li><a href="/artifacts/{{ detail.run_id }}/{{ filename }}">{{ filename }}</a></li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+
+{% if detail.metrics %}
+<section class="grid four">
+  <article class="card compact">
+    <p class="eyebrow">Return</p>
+    <strong class="big-number">{% if detail.metrics.net_return is not none %}{{ "%.4f"|format(detail.metrics.net_return) }}{% else %}-{% endif %}</strong>
+  </article>
+  <article class="card compact">
+    <p class="eyebrow">Drawdown</p>
+    <strong class="big-number">{% if detail.metrics.max_drawdown is not none %}{{ "%.4f"|format(detail.metrics.max_drawdown) }}{% else %}-{% endif %}</strong>
+  </article>
+  <article class="card compact">
+    <p class="eyebrow">Trades</p>
+    <strong class="big-number">{% if detail.metrics.trade_count is not none %}{{ detail.metrics.trade_count }}{% else %}-{% endif %}</strong>
+  </article>
+  <article class="card compact">
+    <p class="eyebrow">Sharpe</p>
+    <strong class="big-number">{% if detail.metrics.annualized_sharpe is not none %}{{ "%.2f"|format(detail.metrics.annualized_sharpe) }}{% else %}-{% endif %}</strong>
+  </article>
+</section>
+
+<section class="grid two">
+  <article class="card">
+    <h3>Metrics</h3>
+    <pre>{{ detail.metrics | tojson(indent=2) }}</pre>
+  </article>
+  <article class="card">
+    <h3>Equity curve</h3>
+    {% if detail.equity_points %}
+    <canvas id="equity-chart" height="180"></canvas>
+    <script>
+      const points = {{ detail.equity_points | tojson }};
+      new Chart(document.getElementById("equity-chart"), {
+        type: "line",
+        data: {
+          labels: points.map((point) => point.timestamp),
+          datasets: [{ label: "Equity", data: points.map((point) => point.equity), borderColor: "#0f766e", pointRadius: 0, tension: 0.2 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+    </script>
+    {% else %}
+    <p class="muted">No equity data available.</p>
+    {% endif %}
+  </article>
+</section>
+{% endif %}
+
+{% if detail.leaderboard %}
+<section class="grid two">
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Selection</p>
+        <h3>Leaderboard</h3>
+      </div>
+      <span class="muted">{{ detail.leaderboard|length }} entries</span>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Family</th>
+          <th>Iter</th>
+          <th>Candidate</th>
+          <th>Validation</th>
+          <th>Improved</th>
+          <th>Score</th>
+          <th>OOS</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in detail.leaderboard %}
+        <tr>
+          <td>{{ row.family_name or "-" }}</td>
+          <td>{{ row.iteration_index if row.iteration_index is not none else "-" }}</td>
+          <td>{{ row.rank_candidate_name }}</td>
+          <td>{{ row.validation_status or "-" }}</td>
+          <td>{{ row.accepted }}</td>
+          <td>{% if row.overall_score is not none %}{{ "%.4f"|format(row.overall_score) }}{% else %}-{% endif %}</td>
+          <td>{% if row.oos_score is not none %}{{ "%.4f"|format(row.oos_score) }}{% else %}-{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </article>
+  <article class="card">
+    <div class="card-head">
+      <div>
+        <p class="eyebrow">Mutation flow</p>
+        <h3>Lineage</h3>
+      </div>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Parent</th>
+          <th>Candidate</th>
+          <th>Generation</th>
+          <th>Accepted</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in detail.lineage %}
+        <tr>
+          <td>{{ row.parent_candidate_name }}</td>
+          <td>{{ row.candidate_name }}</td>
+          <td>{{ row.generation }}</td>
+          <td>{{ row.accepted }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </article>
+</section>
+{% endif %}
+
+{% if detail.family_summaries %}
+<section class="card">
+  <p class="eyebrow">Family verdicts</p>
+  <h3>Strategy families</h3>
+  <div class="family-grid">
+    {% for family in detail.family_summaries %}
+    <article class="family-card">
+      <div class="card-head">
+        <h4>{{ family.family_name }}</h4>
+        {% if family.verdict.accepted %}
+        <span class="status-pill status-completed">accepted</span>
+        {% else %}
+        <span class="status-pill status-failed">rejected</span>
+        {% endif %}
+      </div>
+      <dl class="meta-grid compact-meta">
+        <dt>Best candidate</dt><dd>{{ family.best_candidate_name or "-" }}</dd>
+        <dt>Iterations</dt><dd>{{ family.iterations_run }}</dd>
+        <dt>Best score</dt><dd>{% if family.best_overall_score is not none %}{{ "%.4f"|format(family.best_overall_score) }}{% else %}-{% endif %}</dd>
+        <dt>Stop reason</dt><dd>{{ family.stop_reason or "-" }}</dd>
+        <dt>Memory</dt><dd>{{ family.memory_record.category if family.memory_record else "-" }}</dd>
+      </dl>
+      {% if family.verdict.reasons %}
+      <div class="callout subtle">
+        <strong>Verdict reasons</strong>
+        <ul>
+          {% for reason in family.verdict.reasons %}
+          <li>{{ reason }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+{% if detail.strategy_memory_records %}
+<section class="card">
+  <p class="eyebrow">Persistence</p>
+  <h3>Strategy memory</h3>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Family</th>
+        <th>Category</th>
+        <th>Path</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in detail.strategy_memory_records %}
+      <tr>
+        <td>{{ item.family_name }}</td>
+        <td><span class="status-pill status-failed">{{ item.category }}</span></td>
+        <td class="mono">{{ item.path }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endif %}
+
+{% if detail.summary_text %}
+<section class="card">
+  <h3>Summary</h3>
+  <pre>{{ detail.summary_text }}</pre>
+</section>
+{% endif %}
+{% endblock %}

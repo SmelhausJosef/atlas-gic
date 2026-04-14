@@ -1,0 +1,66 @@
+app:
+  name: atlas-5s-research
+  seed: 7
+  artifacts_dir: artifacts/runs
+  log_level: INFO
+
+data:
+  path: data/market/btc_perp_5s.csv
+  instrument: BTCUSDT-PERP
+  venue: local-sim
+  timeframe: 5s
+  expected_bar_seconds: 5
+
+backtest:
+  initial_equity: 100000.0
+  periods_per_year: 6307200
+  allow_short: true
+
+costs:
+  trading_fee_bps: 2.0
+  slippage_bps: 4.0
+  latency_penalty_bps: 3.0
+
+risk:
+  max_leverage: 1.0
+  max_position_abs: 1.0
+  liquidation_buffer_pct: 0.12
+
+strategy:
+  name: btc_mean_reversion_v1
+  lookback_bars: 720
+  mean_window: 180
+  std_window: 180
+  vol_window: 60
+  min_volatility: 0.0001
+  max_volatility: 0.001
+  entry_zscore: 3.0
+  exit_zscore: 0.5
+  max_holding_bars: 240
+  min_holding_bars: 24
+  cooldown_bars: 60
+  trend_window: 720
+  max_trend_deviation: 0.0015
+  max_regime_distance: 0.001
+  momentum_window: 24
+  entry_momentum_threshold: 0.0005
+  stop_zscore: 4.5
+  position_size: 0.35
+
+research:
+  enabled: true
+  use_llm: false
+  provider: codex_sdk
+  model: gpt-5.4
+  llm_candidate_count: 1
+  max_generations: 2
+  candidate_budget: 4
+  max_stagnation_generations: 1
+  candidate_strategies:
+    - btc_mean_reversion_tight_v1
+  improvement_epsilon: 0.01
+  minimum_trade_count: 10
+  max_drawdown_pct: 0.25
+  stressed_cost_multiplier: 1.5
+  oos_fraction: 0.25
+  walk_forward_splits: 3
